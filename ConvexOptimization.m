@@ -11,6 +11,8 @@ eta2 = 1e-3; % For sinusoid
 max_iter = 100; % Maximum number of iterations
 tol_x = 1e-1; % Convergence tolerance on H field
 tol_y = 1e-1; % Convergence tolerance on permittivity
+tol_x = 1e-2; % Convergence tolerance on H field
+tol_y = 1e-2; % Convergence tolerance on permittivity
 %stability_H_modifier = 1e-5;
 stability_H_modifier = 6e-5;
 
@@ -76,7 +78,7 @@ for iter = 1:max_iter
         error('Invalid values (NaN or Inf) detected in B or d. Check A and x_opt.');
     end
 
-    cvx_begin quiet
+    cvx_begin
         variable y_new(N)
         minimize(norm(B * y_new - d))
         subject to
