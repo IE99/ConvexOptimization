@@ -1,4 +1,4 @@
-% Note: Sensitive to L, eta2, stability_H_modifier
+%% Parameter Definitions
 clc; clear;
 
 % Physical values
@@ -13,7 +13,7 @@ max_iter = 100; % Maximum number of iterations
 tol_x = 1e-1; % Convergence tolerance on H field
 tol_y = 1e-1; % Convergence tolerance on inverse permittivity
 
-H_function = "sawtooth"; % "sinusoid", "box", or "sawtooth"
+H_function = "box"; % "sinusoid", "box", or "sawtooth"
 
 % Generate the target magnetic field functions
 %   A stability_H_modifier is used for stability of the optimization
@@ -77,7 +77,7 @@ A = spdiags([-e e], [0 1], N, N);
 A(N,1) = 1; % Periodic boundary conditions
 A = sparse(A);
 
-% Optimization loop
+%% Optimization loop
 y = y0;
 x_opt = x0;
 for iter = 1:max_iter
@@ -111,19 +111,44 @@ for iter = 1:max_iter
     x_opt = x_new;
 end
 
+%% Calculate Results
 % Calculate permittivity
 epsilon = 1 ./ y;
 
 % Modify arbitrary units for plot clarity
-x_opt_au = x_opt / stability_H_modifier;
+H_opt_au = x_opt / stability_H_modifier;
 x = linspace(-10, 10, N); % To easily compare against PSO
 
-% Plot results
+% Get filtered responses (structure that could be fabricated)
+epsilon_filtered = Filter(epsilon, N);
+
+% Find resulting field from filtered structure using same optimization we
+% used before - should give same result as if we did an FDTD simulation,
+% but will be faster
+y_filtered = 1 ./ epsilon_filtered;
+Y = diag(y_filtered);
+for iter = 1:max_iter
+    cvx_begin
+        variable x_filtered(N)
+        minimize(norm(A * Y * A * x_filtered - xi * x_opt) + eta * norm(x_filtered - x_opt))
+    cvx_end
+
+    tol_x = norm(x_filtered/stability_H_modifier - x_filtered/stability_H_modifier);
+    if tol_x < 1e-2 % Break when we get effectively converge
+        break;
+    end
+
+    x_opt = x_filtered;
+end
+x_filtered = x_filtered / stability_H_modifier;
+
+%% Plot results
 figure;
 subplot(2, 1, 1);
 plot(x, H_target/stability_H_modifier, 'r', 'LineWidth', 2); hold on;
-plot(x, x_opt_au, 'b', 'LineWidth', 2);
-legend('Target H', 'Resulting H');
+plot(x, H_opt_au, 'b', 'LineWidth', 2);
+plot(x, x_filtered, 'g--', 'LineWidth', 2);
+legend('Target H', 'Resulting H', 'Resulting H_{filtered}');
 xlabel('Position (a.u.)');
 ylabel('H (a.u.)');
 title('Magnetic Field (H)');
@@ -131,11 +156,14 @@ grid on;
 hold off;
 
 subplot(2, 1, 2);
-plot(x, epsilon, 'b', 'LineWidth', 2);
-title('Optimized Permittivity (\epsilon_{r})');
+plot(x, epsilon, 'b', 'LineWidth', 2); hold on;
+plot(x, epsilon_filtered, 'g--', 'LineWidth', 2);
+legend('Optimized \epsilon_{r}', 'Filtered \epsilon_{r}');
+title('Permittivity (\epsilon_{r})');
 xlabel('Position (a.u.)');
 ylabel('\epsilon_{r}');
 grid on;
+hold off;
 
 % Display convergence information
 fprintf('Final tolerance in y: %d.\n', new_tolerance_y);
