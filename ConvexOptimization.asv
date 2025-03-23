@@ -7,13 +7,13 @@ x = linspace(0, 1, N); % Position
 lambda = 1550e-9; % Resonant frequency
 L = 100e-9; % Length of the domain
 c = 1; % Speed of light
-e_min = 1; % Minimum permittivity
-e_max = 10; % Maximum permittivity
+e_min = 1; % Minimum permittit
+e_max = 10;
 max_iter = 100; % Maximum number of iterations
 tol_x = 1e-1; % Convergence tolerance on H field
 tol_y = 1e-1; % Convergence tolerance on inverse permittivity
 
-H_function = "sawtooth"; % "sinusoid", "box", or "sawtooth"
+H_function = "box"; % "sinusoid", "box", or "sawtooth"
 
 % Generate the target magnetic field functions
 %   A stability_H_modifier is used for stability of the optimization
@@ -67,8 +67,7 @@ omega = 2*pi*c/lambda_n; % Angular frequency
 xi = (omega / c)^2; % Eigenvalue parameter
 
 % Initial guesses
-%y0 = ones(N, 1); % Initial guess for y (inverse permittivity)
-y0 = 1/e_max + (1/e_min - 1/e_max) * rand(1, N); % Random guess for initial y
+y0 = ones(N, 1); % Initial guess for y (inverse permittivity)
 x0 = H_target'; % Initial guess for x (magnetic field)
 
 % Create finite differences matrix

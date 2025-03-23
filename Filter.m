@@ -1,22 +1,17 @@
-permittivity = epsilon;
-min_feature_size = 3;
-dx = 1;
+% A function to determine how a photonic structure may look like after
+% fabrication
+% Inputs:
+%   permittivity: An array of permittivity values
+%   N: Number of points in the structure
+% Outputs:
+%  filtered_permittivity: An array of permittivity values, after filtering
+function filtered_permittivity = Filter(permittivity, N)
+    min_feature_size = 0.5; % Minimum feature size, assuming length of domain is 20
+    dx = 20/N; % Distance between points, assuming length of domain is 20
 
-sigma = min_feature_size / dx;  % Convert physical size to grid units
-filter_size = ceil(6 * sigma); % Ensure the filter captures enough of the Gaussian
-g_filter = fspecial('gaussian', [1, filter_size], sigma); % 1D Gaussian filter
+    sigma = min_feature_size / dx; % Convert physical size to grid units
+    filter_size = ceil(6 * sigma); % Ensure the filter captures enough of the Gaussian
+    g_filter = fspecial('gaussian', [1, filter_size], min_feature_size); % 1D Gaussian filter
 
-permittivity_smoothed = conv(permittivity, g_filter, 'same');
-
-% threshold = 5;
-% bw = permittivity > threshold; % Convert to binary structure
-% bw = bwareaopen(bw, round(min_feature_size / dx)); % Remove small features
-% 
-% permittivity_smoothed = bw * (max(permittivity) - min(permittivity)) + min(permittivity);
-
-
-subplot(2, 1, 1);
-plot(permittivity, 'r');
-subplot(2, 1, 2);
-plot(permittivity_smoothed, 'b');
-title('Permittivity Profile with Gaussian Smoothing');
+    filtered_permittivity = conv(permittivity, g_filter, 'same');
+end
