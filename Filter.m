@@ -6,6 +6,7 @@
 % Outputs:
 %  filtered_permittivity: An array of permittivity values, after filtering
 function filtered_permittivity = Filter(permittivity, N)
+    % Use minimum size roughly corresponding to 10 nm for 500 nm domain
     min_feature_size = 0.5; % Minimum feature size, assuming length of domain is 20
     dx = 20/N; % Distance between points, assuming length of domain is 20
 

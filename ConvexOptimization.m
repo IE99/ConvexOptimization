@@ -13,7 +13,7 @@ max_iter = 100; % Maximum number of iterations
 tol_x = 1e-1; % Convergence tolerance on H field
 tol_y = 1e-1; % Convergence tolerance on inverse permittivity
 
-H_function = "box"; % "sinusoid", "box", or "sawtooth"
+H_function = "sinusoid"; % "sinusoid", "box", or "sawtooth"
 
 % Generate the target magnetic field functions
 %   A stability_H_modifier is used for stability of the optimization
@@ -40,7 +40,7 @@ if H_function == "sinusoid"
 elseif H_function == "box"
     % Function-specific parameters
     eta = 1e-2; % Regularization parameter for x
-    stability_H_modifier = 1e-5;
+    stability_H_modifier = 6e-5;
 
     % Target field
     h1 = heaviside(x-0.25);
@@ -52,7 +52,7 @@ elseif H_function == "box"
 elseif H_function == "sawtooth"
     % Function-specific parameters
     eta = 1e-2; % Regularization parameter for x
-    stability_H_modifier = 1e-5;
+    stability_H_modifier = 6e-5;
 
     % Target field
     sawtooth_fn = zeros(size(x));
@@ -123,7 +123,7 @@ x = linspace(-10, 10, N); % To easily compare against PSO
 epsilon_filtered = Filter(epsilon, N);
 
 % Find resulting field from filtered structure using same optimization we
-% used before - should give same result as if we did an FDTD simulation,
+% used before - will give same result as if we did an FDTD simulation,
 % but will be faster
 y_filtered = 1 ./ epsilon_filtered;
 Y = diag(y_filtered);
