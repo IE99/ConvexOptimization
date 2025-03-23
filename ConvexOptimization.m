@@ -127,7 +127,7 @@ epsilon_filtered = Filter(epsilon, N);
 % but will be faster
 y_filtered = 1 ./ epsilon_filtered;
 Y = diag(y_filtered);
-for iter = 1:max_iter
+for i = 1:max_iter
     cvx_begin
         variable x_filtered(N)
         minimize(norm(A * Y * A * x_filtered - xi * x_opt) + eta * norm(x_filtered - x_opt))
