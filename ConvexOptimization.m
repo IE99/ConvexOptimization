@@ -1,19 +1,22 @@
+tic; % Start timing
+
 %% Parameter Definitions
 clc; clear;
+plot_results = 0;
 
 % Physical values
 N = 1000; % Number of grid points
 x = linspace(0, 1, N); % Position
 lambda = 1550e-9; % Resonant frequency
 L = 100e-9; % Length of the domain
-c = 1; % Speed of light
+c = 1; % Speed of light - We use natural units (c=1) throughout
 e_min = 1; % Minimum permittivity
 e_max = 10; % Maximum permittivity
 max_iter = 100; % Maximum number of iterations
 tol_x = 1e-1; % Convergence tolerance on H field
 tol_y = 1e-1; % Convergence tolerance on inverse permittivity
 
-H_function = "sinusoid"; % "sinusoid", "box", or "sawtooth"
+H_function = "sawtooth"; % "sinusoid", "box", or "sawtooth"
 
 % Generate the target magnetic field functions
 %   A stability_H_modifier is used for stability of the optimization
@@ -67,7 +70,6 @@ omega = 2*pi*c/lambda_n; % Angular frequency
 xi = (omega / c)^2; % Eigenvalue parameter
 
 % Initial guesses
-%y0 = ones(N, 1); % Initial guess for y (inverse permittivity)
 y0 = 1/e_max + (1/e_min - 1/e_max) * rand(1, N); % Random guess for initial y
 x0 = H_target'; % Initial guess for x (magnetic field)
 
@@ -85,11 +87,11 @@ for iter = 1:max_iter
     B = A * diag(A * x_opt);
     d = xi * x_opt;
 
-    cvx_begin
+    cvx_begin quiet
         variable y_new(N)
         minimize(norm(B * y_new - d))
         subject to
-            1/e_max <= y_new <= 1/e_min; % Bounds on y (inverse permittivity)
+            1/e_max <= y_new <= 1/e_min; % Bounds on y
     cvx_end
 
     % Optimize x (magnetic field)
@@ -128,44 +130,51 @@ epsilon_filtered = Filter(epsilon, N);
 y_filtered = 1 ./ epsilon_filtered;
 Y = diag(y_filtered);
 for i = 1:max_iter
-    cvx_begin
+    cvx_begin quiet
         variable x_filtered(N)
         minimize(norm(A * Y * A * x_filtered - xi * x_opt) + eta * norm(x_filtered - x_opt))
     cvx_end
 
-    tol_x = norm(x_filtered/stability_H_modifier - x_filtered/stability_H_modifier);
+    tol_x = norm(x_filtered/stability_H_modifier - x_opt/stability_H_modifier);
     if tol_x < 1e-2 % Break when we get effectively converge
         break;
     end
 
     x_opt = x_filtered;
 end
-x_filtered = x_filtered / stability_H_modifier;
+H_filtered = x_filtered / stability_H_modifier;
 
 %% Plot results
-figure;
-subplot(2, 1, 1);
-plot(x, H_target/stability_H_modifier, 'r', 'LineWidth', 2); hold on;
-plot(x, H_opt_au, 'b', 'LineWidth', 2);
-plot(x, x_filtered, 'g--', 'LineWidth', 2);
-legend('Target H', 'Resulting H', 'Resulting H_{filtered}');
-xlabel('Position (a.u.)');
-ylabel('H (a.u.)');
-title('Magnetic Field (H)');
-grid on;
-hold off;
-
-subplot(2, 1, 2);
-plot(x, epsilon, 'b', 'LineWidth', 2); hold on;
-plot(x, epsilon_filtered, 'g--', 'LineWidth', 2);
-legend('Optimized \epsilon_{r}', 'Filtered \epsilon_{r}');
-title('Permittivity (\epsilon_{r})');
-xlabel('Position (a.u.)');
-ylabel('\epsilon_{r}');
-grid on;
-hold off;
+if plot_results == 1
+    figure;
+    subplot(2, 1, 1);
+    plot(x, H_target/stability_H_modifier, 'r', 'LineWidth', 2); hold on;
+    plot(x, H_opt_au, 'b', 'LineWidth', 2);
+    plot(x, H_filtered, 'g--', 'LineWidth', 2);
+    legend('Target H', 'Resulting H', 'Resulting H_{filtered}');
+    xlabel('Position (a.u.)');
+    ylabel('H (a.u.)');
+    title('Magnetic Field (H)');
+    grid on;
+    hold off;
+    
+    subplot(2, 1, 2);
+    plot(x, epsilon, 'b', 'LineWidth', 2); hold on;
+    plot(x, epsilon_filtered, 'g--', 'LineWidth', 2);
+    legend('Optimized \epsilon_{r}', 'Filtered \epsilon_{r}');
+    title('Permittivity (\epsilon_{r})');
+    xlabel('Position (a.u.)');
+    ylabel('\epsilon_{r}');
+    grid on;
+    hold off;
+end
 
 % Display convergence information
-fprintf('Final tolerance in y: %d.\n', new_tolerance_y);
-fprintf('Final tolerance in x: %d.\n', new_tolerance_x);
+error_field = norm(H_opt_au' - H_target/stability_H_modifier);
+error_filtered_field = norm(H_filtered' - H_target/stability_H_modifier);
+
+toc; % Stop timing
+
+fprintf('Final error in H: %d.\n', error_field);
+fprintf('Final error in filtered structure H: %d.\n', error_filtered_field);
 fprintf('Optimization converged in %d iterations.\n', iter);
